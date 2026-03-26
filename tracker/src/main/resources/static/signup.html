@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // INSTANT AUTH GUARD: Prevent flickering
+        if (localStorage.getItem("user")) {
+            window.location.replace("dashboard.html");
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | BudgetWise Advisor</title>
+    
+    <!-- External Assets -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #E9C46A;
+            --navy: #264653;
+            --soft-bg: #fdfcf8;
+            --input-bg: #f8fafc;
+            --error: #e76f51;
+            --success: #2a9d8f;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--soft-bg);
+            background-image: radial-gradient(circle at 10% 20%, rgba(233, 196, 106, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(38, 70, 83, 0.05) 0%, transparent 40%);
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; padding: 40px 20px;
+            font-family: 'Poppins', sans-serif; box-sizing: border-box;
+        }
+
+        .auth-card {
+            background: #ffffff; padding: 45px; border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(38, 70, 83, 0.08);
+            width: 100%; max-width: 500px; text-align: center;
+            border: 1px solid rgba(233, 196, 106, 0.1);
+        }
+
+        .logo-icon {
+            width: 55px; height: 55px; background: var(--navy); color: var(--primary);
+            border-radius: 15px; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 10px 20px -5px rgba(38, 70, 83, 0.3);
+            margin-bottom: 20px; transform: rotate(-5deg);
+        }
+
+        /* Form Layout Grid */
+        .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .form-group { position: relative; margin-bottom: 18px; text-align: left; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px; margin-left: 4px; }
+        
+        .input-container { position: relative; }
+        .input-container i.prefix-icon {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; font-size: 16px; transition: var(--transition); z-index: 5;
+        }
+
+        .form-group input {
+            width: 100%; padding: 14px 14px 14px 48px !important;
+            border-radius: 14px !important; border: 2px solid #f1f5f9 !important;
+            background: var(--input-bg) !important; font-size: 14px !important;
+            color: var(--navy) !important; transition: var(--transition) !important;
+            box-sizing: border-box; margin: 0 !important;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary) !important; background: #fff !important;
+            outline: none !important; box-shadow: 0 0 0 4px rgba(233, 196, 106, 0.1) !important;
+        }
+
+        .pass-toggle {
+            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; color: #94a3b8; font-size: 16px; z-index: 10;
+        }
+
+        /* Strength Meter */
+        .strength-bar-bg { height: 4px; width: 100%; background: #f1f5f9; border-radius: 10px; margin-top: 8px; overflow: hidden; }
+        #strength-bar { height: 100%; width: 0%; transition: 0.4s ease; }
+
+        .signup-btn {
+            width: 100%; padding: 16px; background: var(--navy); color: white;
+            border: none; border-radius: 14px; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: var(--transition);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin-top: 10px;
+        }
+
+        .signup-btn:hover { background: #1a3039; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(38, 70, 83, 0.2); }
+
+        #toast-container { position: fixed; top: 30px; right: 30px; z-index: 10000; }
+        
+        /* Date picker style fix */
+        input[type="date"] { padding-right: 15px !important; color: #64748b !important; }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div class="auth-card animate-slide-up">
+        <div class="logo-icon"><i class="fas fa-user-plus"></i></div>
+        <h2 style="margin-bottom: 5px;">Create Account</h2>
+        <p class="subtitle" style="margin-bottom: 30px;">Join the community of smart savers</p>
+        
+        <!-- Name Row -->
+        <div class="name-row">
+            <div class="form-group">
+                <label>First Name</label>
+                <div class="input-container">
+                    <i class="fas fa-id-card prefix-icon"></i>
+                    <input type="text" id="fname" placeholder="First Name">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Last Name</label>
+                <div class="input-container">
+                    <i class="fas fa-id-card prefix-icon"></i>
+                    <input type="text" id="lname" placeholder="Second Name">
+                </div>
+            </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+            <label>Email Address</label>
+            <div class="input-container">
+                <i class="fas fa-envelope prefix-icon"></i>
+                <input type="email" id="email" placeholder="...@example.com">
+            </div>
+        </div>
+
+        <!-- DOB -->
+        <div class="form-group">
+            <label>Date of Birth</label>
+            <div class="input-container">
+                <i class="fas fa-calendar-day prefix-icon"></i>
+                <input type="date" id="dob">
+            </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+            <label>Password</label>
+            <div class="input-container">
+                <i class="fas fa-lock prefix-icon"></i>
+                <input type="password" id="pass" placeholder="••••••••" onkeyup="checkPasswordStrength()">
+                <i class="fas fa-eye pass-toggle" onclick="togglePassword('pass', this)"></i>
+            </div>
+            <div class="strength-bar-bg"><div id="strength-bar"></div></div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+            <label>Confirm Password</label>
+            <div class="input-container">
+                <i class="fas fa-shield-check prefix-icon"></i>
+                <input type="password" id="confirm-pass" placeholder="••••••••">
+                <i class="fas fa-eye pass-toggle" onclick="togglePassword('confirm-pass', this)"></i>
+            </div>
+        </div>
+        
+        <button class="signup-btn" id="signup-btn" onclick="handleSignup()">
+            <span id="btn-text">Create My Account</span>
+            <i class="fas fa-arrow-right-long" id="btn-icon"></i>
+        </button>
+        
+        <p class="link-text" style="margin-top: 25px; font-size: 14px; color: #64748b;">
+            Already a member? <a href="login.html" style="color: var(--navy); font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--primary);">Sign In</a>
+        </p>
+    </div>
+
+    <script>
+        // 1. Dual Toggle Password Visibility
+        function togglePassword(id, el) {
+            const input = document.getElementById(id);
+            if (input.type === "password") {
+                input.type = "text";
+                el.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                input.type = "password";
+                el.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        }
+
+        // 2. Strength Meter logic
+        function checkPasswordStrength() {
+            const pass = document.getElementById('pass').value;
+            const bar = document.getElementById('strength-bar');
+            if (pass.length === 0) bar.style.width = "0%";
+            else if (pass.length < 6) { bar.style.width = "30%"; bar.style.background = "#e76f51"; }
+            else if (pass.length < 10) { bar.style.width = "65%"; bar.style.background = "#E9C46A"; }
+            else { bar.style.width = "100%"; bar.style.background = "#2a9d8f"; }
+        }
+
+        // 3. Premium Toast System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { 
+                toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 500); 
+            }, 3500);
+        }
+
+        // 4. Onboarding Logic
+        async function handleSignup() {
+            const fname = document.getElementById('fname').value.trim();
+            const lname = document.getElementById('lname').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const dob = document.getElementById('dob').value;
+            const pass = document.getElementById('pass').value;
+            const confirmPass = document.getElementById('confirm-pass').value;
+            const btn = document.getElementById('signup-btn');
+            
+            // Validation Checks
+            if (!fname || !lname || !email || !dob || !pass || !confirmPass) {
+                showToast("Please fill in all details", "error");
+                return;
+            }
+
+            // Email Format Check (Regex)
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast("Invalid email format (e.g. name@mail.com)", "error");
+                return;
+            }
+
+            // Password Match Check
+            if (pass !== confirmPass) {
+                showToast("Passwords do not match!", "error");
+                return;
+            }
+
+            if (pass.length < 6) {
+                showToast("Password must be at least 6 characters", "error");
+                return;
+            }
+
+            // UI State: Loading
+            btn.disabled = true;
+            document.getElementById('btn-text').innerText = "Processing...";
+            document.getElementById('btn-icon').className = "fas fa-spinner fa-spin";
+
+            try {
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        fullName: fname + " " + lname, 
+                        email: email, 
+                        password: pass,
+                        dob: dob 
+                    })
+                });
+
+                if (response.ok) {
+                    showToast("Account created! Redirecting to login...", "success");
+                    setTimeout(() => window.location.replace("login.html"), 1500);
+                } else {
+                    const error = await response.text();
+                    showToast(error || "Email already registered", "error");
+                    resetBtn();
+                }
+            } catch (err) {
+                showToast("Server unreachable", "error");
+                resetBtn();
+            }
+        }
+
+        function resetBtn() {
+            const btn = document.getElementById('signup-btn');
+            btn.disabled = false;
+            document.getElementById('btn-text').innerText = "Create My Account";
+            document.getElementById('btn-icon').className = "fas fa-arrow-right-long";
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | BudgetWise AI Advisor</title>
+    <!-- 1. Instant Auth Guard -->
+    <script>
+        if (!localStorage.getItem("user")) window.location.replace("login.html");
+    </script>
+    
+    <!-- 2. Essential Assets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* ==========================================
+           ULTRA-PROFESSIONAL UI PATCHES
+           ========================================== */
+        :root {
+            --glass: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.5);
+        }
+
+        body { background: #f4f7f6; }
+
+        /* Sticky Blurred Header */
+        .top-nav {
+            position: sticky; top: 0; z-index: 1000;
+            background: var(--glass); backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 30px; margin-bottom: 30px;
+        }
+
+        /* Stat Cards Enhancement */
+        .stat-card {
+            background: #ffffff; border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .stat-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.08); }
+        .stat-icon { font-size: 26px; width: 65px; height: 65px; border-radius: 20px; }
+
+        /* AI SIDEBAR: Mentor Theme V3 */
+        #ai-sidebar {
+            position: fixed; top: 0; right: 0; width: 400px; height: 100vh;
+            background: #ffffff; box-shadow: -15px 0 50px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; z-index: 2000;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ai-sidebar-closed { transform: translateX(100%); }
+
+        .ai-header { 
+            background: linear-gradient(135deg, #264653 0%, #2a9d8f 100%); 
+            padding: 30px 20px; color: white; display: flex; justify-content: space-between; align-items: center; 
+        }
+        
+        #ai-chat-body { flex: 1; padding: 25px; overflow-y: auto; background: #fdfcf8; display: flex; flex-direction: column; gap: 18px; }
+        
+        /* Message Bubbles */
+        .ai-bubble, .user-bubble { max-width: 85%; padding: 15px 20px; border-radius: 20px; font-size: 13.5px; line-height: 1.6; position: relative; }
+        .ai-bubble { background: #ffffff; border: 1px solid #eee; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .user-bubble { background: #E9C46A; color: #264653; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 600; box-shadow: 0 4px 15px rgba(233, 196, 106, 0.2); }
+
+        #ai-toggle-btn {
+            position: fixed; bottom: 40px; right: 40px;
+            background: #264653; color: #E9C46A; padding: 18px 30px;
+            border-radius: 100px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 10px 30px rgba(38, 70, 83, 0.3); z-index: 1500; font-weight: 600;
+            border: 2px solid #E9C46A; transition: 0.3s ease;
+        }
+        #ai-toggle-btn:hover { background: #E9C46A; color: #264653; transform: scale(1.05) translateY(-5px); }
+
+        /* Animation for bubbles */
+        .ai-bubble { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div id="toast-container"></div>
+
+    <div class="dashboard-wrapper animate-slide-up">
+        
+        <!-- HEADER -->
+        <nav class="top-nav">
+            <div class="brand">
+                <i class="fas fa-chart-line-up" style="color: var(--primary);"></i>
+                <span style="letter-spacing: 1px;">BudgetWise<b>Advisor</b></span>
+            </div>
+
+            <div class="nav-links">
+                <a href="notifications.html" style="color: var(--navy); font-size: 22px; position: relative; margin-right: 10px;">
+                    <i class="fas fa-bell"></i>
+                    <span id="notif-dot" style="display:none; position:absolute; top:-4px; right:-2px; background:#e76f51; height:10px; width:10px; border-radius:50%; border: 2px solid white;"></span>
+                </a>
+
+                <a href="budget-analysis.html" class="primary-btn" style="background: #E9C46A; color:#264653;">Budgeting</a>
+                <a href="trends.html" class="primary-btn" style="background:#264653; color:white;">Trends</a>
+                <a href="community.html" class="primary-btn" style="background:#F4A261; color:white;">Community</a>
+
+                <div class="user-profile" onclick="location.href='profile.html'" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding: 6px 18px; border-radius:100px; background:rgba(0,0,0,0.04);">
+                    <div class="user-text" style="text-align:right">
+                        <span style="font-size:10px; font-weight:700; color:#888; text-transform:uppercase;">Account</span>
+                        <span id="display-name" style="font-weight:700; color:#264653; font-size:14px;">User</span>
+                    </div>
+                    <div class="user-avatar" style="width:42px; height:42px; border-radius:50%; overflow:hidden; border:2px solid #E9C46A; background:white;">
+                        <img id="user-header-pic" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                        <i id="default-icon" class="fas fa-user-circle" style="font-size: 38px; color:#264653;"></i>
+                    </div>
+                    <button class="icon-btn" onclick="event.stopPropagation(); logout()" style="background:none; border:none; color:#e76f51; cursor:pointer; font-size:20px; margin-left:5px;"><i class="fas fa-power-off"></i></button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- STATS SECTION -->
+        <div class="stats-grid">
+            <div class="stat-card balance">
+                <div class="stat-icon" style="background:#fff9e6;"><i class="fas fa-wallet"></i></div>
+                <div class="stat-content"><p>Net Balance</p><h3 id="summary-balance" style="color:var(--navy);">₹0.00</h3></div>
+            </div>
+            <div class="stat-card income">
+                <div class="stat-icon" style="background:#e6faf7;"><i class="fas fa-hand-holding-dollar"></i></div>
+                <div class="stat-content"><p>Monthly Base</p><h3 class="text-green" id="summary-income">₹0.00</h3></div>
+            </div>
+            <div class="stat-card expense">
+                <div class="stat-icon" style="background:#ffeeeb;"><i class="fas fa-credit-card"></i></div>
+                <div class="stat-content"><p>Current Spent</p><h3 class="text-red" id="summary-expense">₹0.00</h3></div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <!-- ADD FORM -->
+            <section class="card-section">
+                <div class="card-header">
+                    <h3 style="font-weight:700;"><i class="fas fa-plus-circle" style="color:var(--teal);"></i> Log New Transaction</h3>
+                </div>
+                <div class="form-container" style="margin-top: 20px;">
+                    <div class="input-row" style="display:flex; gap:20px; margin-bottom: 15px;">
+                        <div class="field" style="flex:1"><label>Amount (₹)</label><input type="number" id="txn-amount" placeholder="0.00"></div>
+                        <div class="field" style="flex:1"><label>Description</label><input type="text" id="txn-desc" placeholder="e.g., Starbucks Coffee"></div>
+                    </div>
+                    <div class="input-row" style="display:flex; gap:20px; margin-bottom: 25px;">
+                        <div class="field" style="flex:1"><label>Category</label>
+                            <select id="txn-cat">
+                                <option>Food & Dining</option><option>Home & Rent</option><option>Shopping</option>
+                                <option>Transportation</option><option>Salary/Income</option><option>Miscellaneous</option>
+                            </select>
+                        </div>
+                        <div class="field" style="flex:1"><label>Type</label>
+                            <select id="txn-type"><option value="Expense">Expense</option><option value="Income">Income</option></select>
+                        </div>
+                    </div>
+                    <button class="primary-btn" onclick="saveTransaction()" style="height:55px;"><i class="fas fa-check-circle"></i> Save Transaction</button>
+                </div>
+            </section>
+
+            <!-- ACTIVITY LIST -->
+            <section class="card-section history">
+                <div class="card-header"><h3><i class="fas fa-clock-rotate-left"></i> Transaction History</h3></div>
+                <div id="txn-history-container" class="empty-log"><i class="fas fa-receipt"></i><p>Your financial story starts here.</p></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ==========================================
+         MENTOR AI SIDEBAR
+         ========================================== -->
+    <div id="ai-sidebar" class="ai-sidebar-closed">
+        <div class="ai-header">
+            <h4><i class="fas fa-robot"></i> Financial Mentor</h4>
+            <button onclick="toggleAISidebar()"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="ai-chat-body"></div>
+        <div id="ai-typing" style="padding: 0 25px; color: #2a9d8f; font-style: italic; font-size: 12px; display: none; margin-bottom: 20px;">
+            <i class="fas fa-circle-notch fa-spin"></i> crunching your data...
+        </div>
+        <div class="ai-footer">
+            <div class="ai-input-container">
+                <input type="text" id="ai-user-input" placeholder="How am I doing today?" onkeypress="if(event.key==='Enter') processAIQuery()">
+                <button onclick="processAIQuery()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ai-toggle-btn" onclick="toggleAISidebar()">
+        <i class="fas fa-comment-dots"></i>
+        <span>Ask Mentor</span>
+    </div>
+
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem("user"));
+
+        // 1. Initial Page Load
+        window.onload = () => {
+            document.getElementById("display-name").innerText = activeUser.fullName;
+            if (activeUser.profilePic) {
+                const img = document.getElementById("user-header-pic");
+                img.src = activeUser.profilePic; img.style.display = "block";
+                document.getElementById("default-icon").style.display = "none";
+            }
+            loadTransactions();
+            
+            // Warm Pro Greeting
+            setTimeout(() => {
+                appendAIMessage(`Welcome back, <b>${activeUser.fullName.split(' ')[0]}</b>! 👋 I've just refreshed your dashboard. I'm ready to explain your <b>spending patterns</b> or discuss the <b>Spring Boot</b> architecture. What's on your mind?`, 'ai');
+            }, 800);
+        };
+
+        // 2. Toast System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        // 3. Data Logic
+        async function saveTransaction() {
+            const amount = document.getElementById("txn-amount").value;
+            const desc = document.getElementById("txn-desc").value;
+            if (!amount || !desc) { showToast("Details are required, buddy!", "error"); return; }
+            const txn = { userId: activeUser.id, amount: parseFloat(amount), description: desc, category: document.getElementById("txn-cat").value, type: document.getElementById("txn-type").value };
+            const res = await fetch('/api/transactions/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(txn) });
+            if (res.ok) { showToast("Transaction successfully logged.", "success"); setTimeout(() => location.reload(), 800); }
+        }
+
+        async function loadTransactions() {
+            const res = await fetch(`/api/transactions/user/${activeUser.id}`);
+            const data = await res.json();
+            const container = document.getElementById("txn-history-container");
+            if (data.length > 0) {
+                container.innerHTML = data.map(t => `
+                    <div class="stat-card" style="margin-bottom:12px; border:1px solid #f0f0f0; padding:18px">
+                        <div class="stat-content"><p style="font-size:10px; color:#999; font-weight:700;">${t.date} • ${t.category.toUpperCase()}</p><h4 style="color:#264653; margin-top:2px;">${t.description}</h4></div>
+                        <h3 class="${t.type === 'Income' ? 'text-green' : 'text-red'}" style="margin-left:auto; font-size:18px;">₹${t.amount.toLocaleString()}</h3>
+                    </div>`).join('');
+                container.className = "";
+            }
+            updateSummary(data);
+        }
+
+        function updateSummary(txns) {
+            let salary = activeUser.monthlyIncome || 0;
+            let exp = 0;
+            txns.forEach(t => { if(t.type === 'Expense') exp += t.amount; });
+            document.getElementById("summary-income").innerText = `₹${salary.toLocaleString()}`;
+            document.getElementById("summary-expense").innerText = `₹${exp.toLocaleString()}`;
+            document.getElementById("summary-balance").innerText = `₹${(salary - exp).toLocaleString()}`;
+            if (exp > salary && salary > 0) {
+                document.getElementById("notif-dot").style.display = "block";
+                showToast("Budget Breach: Expenses have exceeded your salary!", "error");
+            }
+        }
+
+        // ==========================================
+        // ENHANCED MENTOR AI LOGIC
+        // ==========================================
+        function toggleAISidebar() { document.getElementById('ai-sidebar').classList.toggle('ai-sidebar-closed'); }
+        
+        function appendAIMessage(content, sender) {
+            const body = document.getElementById('ai-chat-body');
+            const div = document.createElement('div');
+            div.className = sender === 'ai' ? 'ai-bubble' : 'user-bubble';
+            div.innerHTML = content;
+            body.appendChild(div);
+            body.scrollTop = body.scrollHeight;
+        }
+
+        async function processAIQuery() {
+            const input = document.getElementById('ai-user-input');
+            const query = input.value.trim().toLowerCase();
+            if (!query) return;
+
+            appendAIMessage(input.value, 'user');
+            input.value = "";
+            document.getElementById('ai-typing').style.display = "block";
+
+            setTimeout(() => {
+                document.getElementById('ai-typing').style.display = "none";
+                let res = "That's a valid query! I'm specifically integrated with your **BudgetWise** SQL data. Try asking me about 'Visual Trends', 'Architecture', or 'Salary alerts'.";
+
+                if (query.includes("health") || query.includes("how am i doing") || query.includes("status")) {
+                    const salary = activeUser.monthlyIncome || 0;
+                    res = salary > 0 ? `Your monthly base is **₹${salary.toLocaleString()}**. My logic is auditing your expenses in real-time. Stay within your category limits to maintain high financial health!` : "Update your **Monthly Salary** in your profile so I can start auditing your habits!";
+                } 
+                else if (query.includes("visual trends") || query.includes("chart") || query.includes("graph")) {
+                    res = "The **Visual Trends** module is built with **Chart.js**. 📊 It queries your last 6 months of database history to generate a real-time line graph, helping you identify seasonal spending spikes.";
+                }
+                else if (query.includes("tech") || query.includes("built") || query.includes("stack")) {
+                    res = "We've utilized a modern stack: 💡<br>• **Backend:** Spring Boot 3.4<br>• **ORM:** Spring Data JPA<br>• **Database:** Oracle MySQL<br>• **Reporting:** OpenPDF for stylized statements.";
+                }
+                else if (query.includes("limit") || query.includes("budgeting")) {
+                    res = "The **Budgeting** module uses a 'Set & Compare' algorithm. You define limits, and I calculate the delta between your goals and actual transactions instantly.";
+                }
+                else if (query.includes("hi") || query.includes("hello")) {
+                    res = "Hey buddy! Ready to optimize your cash flow today?";
+                }
+
+                appendAIMessage(res, 'ai');
+            }, 1000);
+        }
+
+        function logout() { if(confirm("Terminate session?")) { localStorage.clear(); window.location.replace("login.html"); } }
+    </script>
+</body>
+</html>

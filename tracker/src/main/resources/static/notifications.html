@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // INSTANT AUTH GUARD
+        if (!localStorage.getItem("user")) {
+            window.location.replace("login.html");
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | Budget Advisor</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        
+        /* HEADER AVATAR FIX */
+        .user-avatar {
+            width: 42px !important; height: 42px !important;
+            border-radius: 50%; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--primary); flex-shrink: 0; background: #eee;
+        }
+        #user-header-pic { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Notification Card Enhancements */
+        .notif-card {
+            padding: 25px; border-radius: 20px; margin-bottom: 20px;
+            border-left: 6px solid #ccc; background: #fff;
+            box-shadow: var(--shadow-soft); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: block; text-decoration: none; color: inherit;
+        }
+        .notif-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-premium); }
+        
+        .notif-critical { border-left-color: #e76f51; background: #fff8f7; }
+        .notif-warning { border-left-color: #E9C46A; background: #fffdf5; }
+        .notif-success { border-left-color: #2a9d8f; background: #f6fcfb; }
+        .notif-info { border-left-color: #264653; background: #f8f9fa; }
+
+        .progress-container { width: 100%; background: #eee; height: 8px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress-bar { height: 100%; border-radius: 10px; transition: width 1.5s ease-in-out; }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div id="toast-container"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- TOP NAVIGATION -->
+        <nav class="top-nav">
+            <div class="brand">
+                <a href="dashboard.html" style="text-decoration:none; color:var(--navy); font-weight:600; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-arrow-left" style="color:var(--primary);"></i> 
+                    <span>Back to <b>Dashboard</b></span>
+                </a>
+            </div>
+            <div class="user-profile" onclick="location.href='profile.html'" style="cursor:pointer; display: flex; align-items: center; gap:12px;">
+                <div class="user-text" style="text-align: right;">
+                    <span class="hey" style="font-size: 11px; color: #888; display: block;">ADVISOR FOR</span>
+                    <span id="display-name" class="user-name" style="font-weight:700; color: var(--navy);">User</span>
+                </div>
+                <div class="user-avatar">
+                    <img id="user-header-pic" src="" alt="Profile" style="display:none;">
+                    <i id="default-icon" class="fas fa-user-circle" style="font-size: 32px; color: var(--navy);"></i>
+                </div>
+            </div>
+        </nav>
+
+        <section class="card-section animate-slide-up">
+            <div class="card-header">
+                <h3><i class="fas fa-robot"></i> AI Financial Advisor</h3>
+                <p style="font-size: 12px; color: #888;">Intelligent alerts based on your real-time SQL data</p>
+            </div>
+            
+            <div id="notification-list" style="margin-top: 25px;">
+                <div style="text-align: center; padding: 50px;">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 30px; color: var(--primary);"></i>
+                    <p style="margin-top:10px; color:#666;">Analyzing your cash flow...</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem("user"));
+        document.getElementById("display-name").innerText = activeUser.fullName;
+
+        // Load Profile Picture
+        if (activeUser.profilePic) {
+            const img = document.getElementById("user-header-pic");
+            img.src = activeUser.profilePic; img.style.display = "block";
+            document.getElementById("default-icon").style.display = "none";
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        async function runAdvisor() {
+            try {
+                // Fetch the latest totals AND salary from the updated Analysis API
+                const res = await fetch(`/api/analysis/income-vs-expense/${activeUser.id}`);
+                const data = await res.json();
+                
+                const salary = data.salary || 0; // Uses DB salary, not potentially old localStorage salary
+                const expenses = data.expense || 0;
+                const list = document.getElementById('notification-list');
+                let html = "";
+
+                if (salary <= 0) {
+                    html += `
+                    <div class="notif-card notif-info animate-slide-up">
+                        <h4 style="color:var(--navy);"><i class="fas fa-user-edit"></i> Profile Needs Attention</h4>
+                        <p>Your monthly salary is currently set to ₹0. I can't provide budget advice without knowing your income.</p>
+                        <button class="primary-btn" style="width:auto; padding:8px 20px; margin-top:15px; font-size:12px;" onclick="location.href='profile.html'">Update Salary Now</button>
+                    </div>`;
+                } else {
+                    const percent = Math.min((expenses / salary) * 100, 100).toFixed(1);
+                    const remaining = salary - expenses;
+
+                    if (expenses > salary) {
+                        html += `
+                        <div class="notif-card notif-critical">
+                            <h4 style="color:#e76f51;"><i class="fas fa-exclamation-triangle"></i> Budget Breach!</h4>
+                            <p>Warning: You've spent <b>₹${expenses.toFixed(2)}</b>. This is <b>${(expenses/salary*100).toFixed(1)}%</b> of your salary. You are in debt by ₹${Math.abs(remaining).toFixed(2)}.</p>
+                            <div class="progress-container"><div class="progress-bar" style="width:100%; background:#e76f51;"></div></div>
+                        </div>`;
+                    } else if (expenses > (salary * 0.8)) {
+                        html += `
+                        <div class="notif-card notif-warning">
+                            <h4><i class="fas fa-bolt"></i> Low Funds Alert</h4>
+                            <p>You have used <b>${percent}%</b> of your salary. You only have <b>₹${remaining.toFixed(2)}</b> left for the month.</p>
+                            <div class="progress-container"><div class="progress-bar" style="width:${percent}%; background:#E9C46A;"></div></div>
+                        </div>`;
+                    } else {
+                        html += `
+                        <div class="notif-card notif-success">
+                            <h4 style="color:#2a9d8f;"><i class="fas fa-check-double"></i> Financial Health: Excellent</h4>
+                            <p>Great job, ${activeUser.fullName.split(' ')[0]}! You've only used <b>${percent}%</b> of your funds. Keep saving!</p>
+                            <div class="progress-container"><div class="progress-bar" style="width:${percent}%; background:#2a9d8f;"></div></div>
+                        </div>`;
+                    }
+                }
+
+                // Default Informational Message
+                html += `
+                <div class="notif-card notif-info">
+                    <h4><i class="fas fa-shield-alt"></i> Data Security</h4>
+                    <p>Your financial data is encrypted and stored securely in our Oracle MySQL database.</p>
+                </div>`;
+
+                list.innerHTML = html;
+            } catch (err) {
+                list.innerHTML = `<p style="text-align:center; color:#e76f51;">Advisor is currently unavailable. Please check your backend connection.</p>`;
+            }
+        }
+
+        function logout() {
+            if(confirm("Logout from Advisor?")) {
+                localStorage.clear();
+                window.location.replace("login.html");
+            }
+        }
+
+        window.onload = runAdvisor;
+    </script>
+    
+    <!-- AI AGENT INJECTION -->
+    <script src="ai-agent.js"></script>
+</body>
+</html>

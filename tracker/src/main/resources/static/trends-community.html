@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // SPEED FIX: Instant Auth Guard in head to prevent flickering
+        const userData = localStorage.getItem("user");
+        if (!userData) window.location.replace("login.html");
+        const activeUser = JSON.parse(userData);
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & Community | BudgetWise Advisor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* TOP NAV AVATAR FIX */
+        .user-avatar {
+            width: 42px !important; height: 42px !important;
+            border-radius: 50%; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--primary); flex-shrink: 0; background: #eee;
+        }
+        #user-header-pic { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Premium Glass UI */
+        .premium-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px; margin-top: 20px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 24px; padding: 25px;
+            box-shadow: var(--shadow-premium); border: 1px solid rgba(0,0,0,0.03);
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .glass-panel:hover { transform: translateY(-5px); }
+        .panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
+        .panel-header h3 { font-size: 17px; color: var(--navy); margin: 0; font-weight: 600; }
+        .panel-header i { color: var(--primary); font-size: 18px; }
+
+        /* Forum UI */
+        .forum-input-area { margin-bottom: 20px; }
+        .forum-input-area textarea { 
+            width: 100%; border-radius: 15px; border: 1px solid #eee; 
+            padding: 15px; margin-bottom: 10px; font-family: inherit; resize: none; background: #fdfcf8;
+        }
+        .post-item { border-bottom: 1px solid #f0f0f0; padding: 15px 0; }
+        .post-author { font-weight: 700; color: var(--navy); font-size: 13px; }
+        .post-content { color: #555; font-size: 13px; margin: 5px 0; line-height: 1.5; }
+        .like-btn { cursor: pointer; font-size: 12px; color: var(--primary); transition: 0.2s; }
+        .like-btn:hover { color: var(--coral); }
+
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div id="toast-container"></div>
+
+    <div class="dashboard-wrapper animate-slide-up">
+        <!-- TOP NAVIGATION -->
+        <nav class="top-nav">
+            <div class="brand">
+                <a href="dashboard.html" style="text-decoration:none; color:var(--navy); font-weight:600; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-arrow-left" style="color:var(--primary);"></i> 
+                    <span>Back to <b>Dashboard</b></span>
+                </a>
+            </div>
+            <div class="user-profile" onclick="location.href='profile.html'" style="cursor:pointer; display: flex; align-items: center; gap:12px;">
+                <div class="user-text" style="text-align: right;">
+                    <span class="hey" style="font-size: 11px; color: #888; display: block;">ANALYTICS FOR</span>
+                    <span id="display-name" style="font-weight:700; color: var(--navy);">User</span>
+                </div>
+                <div class="user-avatar">
+                    <img id="user-header-pic" src="" alt="Profile" style="display:none;">
+                    <i id="default-icon" class="fas fa-user-circle" style="font-size: 32px; color: var(--navy);"></i>
+                </div>
+                <button class="icon-btn logout" onclick="event.stopPropagation(); logout()"><i class="fas fa-power-off"></i></button>
+            </div>
+        </nav>
+
+        <div class="premium-container">
+            <!-- MILESTONE 4: LINE CHART -->
+            <div class="glass-panel">
+                <div class="panel-header"><i class="fas fa-chart-line"></i><h3>Spending Trend</h3></div>
+                <div style="height: 250px;"><canvas id="lineChart"></canvas></div>
+            </div>
+
+            <!-- MILESTONE 4: BAR CHART -->
+            <div class="glass-panel">
+                <div class="panel-header"><i class="fas fa-chart-bar"></i><h3>Income vs Expenses</h3></div>
+                <div style="height: 250px;"><canvas id="barChart"></canvas></div>
+            </div>
+
+            <!-- MILESTONE 5: EXPORTS -->
+            <div class="glass-panel">
+                <div class="panel-header"><i class="fas fa-file-download"></i><h3>Export Center</h3></div>
+                <p style="color: #888; font-size: 12px; margin-bottom: 20px;">Download your financial history as styled reports.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="primary-btn" onclick="exportPDF()" style="background:#e76f51; border-radius: 12px;">PDF</button>
+                    <button class="primary-btn" onclick="exportCSV()" style="background:#2a9d8f; border-radius: 12px;">CSV</button>
+                </div>
+            </div>
+
+            <!-- MILESTONE 5: FORUM -->
+            <div class="glass-panel">
+                <div class="panel-header"><i class="fas fa-users"></i><h3>Community Tips</h3></div>
+                <div class="forum-input-area">
+                    <textarea id="forum-msg" rows="2" placeholder="Share a tip..."></textarea>
+                    <button class="primary-btn" onclick="postTip()" style="width: auto; padding: 8px 20px; font-size: 12px;">Post Tip</button>
+                </div>
+                <div id="forum-list" style="max-height: 200px; overflow-y: auto; padding-right: 5px;">
+                    <!-- Tips injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pre-fill header
+        document.getElementById("display-name").innerText = activeUser.fullName;
+        if (activeUser.profilePic) {
+            const img = document.getElementById("user-header-pic");
+            img.src = activeUser.profilePic; img.style.display = "block";
+            document.getElementById("default-icon").style.display = "none";
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        async function initCharts() {
+            try {
+                const resTrend = await fetch(`/api/analysis/spending-trend/${activeUser.id}`);
+                const trendData = await resTrend.json();
+                
+                const ctxLine = document.getElementById('lineChart').getContext('2d');
+                const grad = ctxLine.createLinearGradient(0, 0, 0, 250);
+                grad.addColorStop(0, 'rgba(233, 196, 106, 0.3)');
+                grad.addColorStop(1, 'rgba(233, 196, 106, 0)');
+
+                new Chart(ctxLine, {
+                    type: 'line',
+                    data: {
+                        labels: trendData.map(d => d.month),
+                        datasets: [{ label: 'Expenses (₹)', data: trendData.map(d => d.amount), borderColor: '#E9C46A', backgroundColor: grad, fill: true, tension: 0.4 }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
+
+                const resPie = await fetch(`/api/analysis/income-vs-expense/${activeUser.id}`);
+                const pieData = await resPie.json();
+                new Chart(document.getElementById('barChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Income', 'Expenses'],
+                        datasets: [{ data: [pieData.income, pieData.expense], backgroundColor: ['#2a9d8f', '#e76f51'], borderRadius: 8 }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        function exportPDF() { showToast("Downloading PDF..."); window.location.href = `/api/export/pdf/${activeUser.id}`; }
+        function exportCSV() { showToast("Downloading CSV..."); window.location.href = `/api/export/csv/${activeUser.id}`; }
+
+        async function postTip() {
+            const msg = document.getElementById('forum-msg').value;
+            if(!msg) return showToast("Type a message first", "error");
+            const res = await fetch('/api/forum/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: activeUser.id, authorName: activeUser.fullName, content: msg })
+            });
+            if(res.ok) { showToast("Tip posted!"); document.getElementById('forum-msg').value = ""; loadTips(); }
+        }
+
+        async function loadTips() {
+            const res = await fetch('/api/forum/posts');
+            const data = await res.json();
+            document.getElementById('forum-list').innerHTML = data.reverse().map(p => `
+                <div class="post-item">
+                    <div class="post-author">${p.authorName}</div>
+                    <div class="post-content">${p.content}</div>
+                    <div class="like-btn" onclick="likePost(${p.id}, this)"><i class="fas fa-heart"></i> ${p.likes || 0} Likes</div>
+                </div>
+            `).join('');
+        }
+
+        async function likePost(id, el) {
+            const res = await fetch(`/api/forum/like/${id}`, { method: 'POST' });
+            if(res.ok) { const updated = await res.json(); el.innerHTML = `<i class="fas fa-heart"></i> ${updated.likes} Likes`; el.style.color = '#e76f51'; }
+        }
+
+        function logout() { if(confirm("Logout?")) { localStorage.clear(); window.location.replace("login.html"); } }
+
+        window.onload = () => { initCharts(); loadTips(); };
+    </script>
+    <script src="ai-agent.js"></script>
+</body>
+</html>

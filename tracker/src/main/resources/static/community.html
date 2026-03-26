@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // INSTANT AUTH GUARD
+        if (!localStorage.getItem("user")) {
+            window.location.replace("login.html");
+        }
+    </script>
+    <meta charset="UTF-8">
+    <title>Community & Export | BudgetWise Advisor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        
+        /* HEADER AVATAR FIX */
+        .user-avatar {
+            width: 42px !important; height: 42px !important;
+            border-radius: 50%; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--primary); flex-shrink: 0; background: #eee;
+        }
+        #user-header-pic { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Forum Specific Enhancements */
+        .forum-input { 
+            width: 100%; border-radius: 15px; border: 1px solid #ddd; 
+            padding: 15px; margin-bottom: 10px; font-family: 'Poppins'; 
+            resize: none; background: #fdfcf8; transition: 0.3s;
+        }
+        .forum-input:focus { border-color: var(--primary); outline: none; background: #fff; }
+
+        .post-card { 
+            background: #fff; border: 1px solid #f0f0f0; border-radius: 20px; 
+            padding: 20px; margin-bottom: 15px; box-shadow: var(--shadow-soft);
+            transition: 0.3s;
+        }
+        .post-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-premium); }
+        
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .post-author { font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 10px; }
+        .post-content { color: #444; line-height: 1.6; font-size: 14px; }
+        
+        .like-btn { 
+            margin-top: 15px; color: var(--text-muted); font-size: 13px; 
+            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+            transition: 0.2s; padding: 5px 12px; border-radius: 20px; background: #f8f9fa;
+        }
+        .like-btn:hover { color: #e76f51; background: #feeae6; }
+        .like-btn.active { color: #e76f51; font-weight: 700; }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div id="toast-container"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- TOP NAVIGATION -->
+        <nav class="top-nav">
+            <div class="brand">
+                <a href="dashboard.html" style="text-decoration:none; color:var(--navy); font-weight:600; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-arrow-left" style="color:var(--primary);"></i> 
+                    <span>Back to <b>Dashboard</b></span>
+                </a>
+            </div>
+            <div class="user-profile" onclick="location.href='profile.html'" style="cursor:pointer; display: flex; align-items: center; gap:12px;">
+                <div class="user-text" style="text-align: right;">
+                    <span class="hey" style="font-size: 11px; color: #888; display: block;">COMMUNITY PROFILE</span>
+                    <span id="display-name" style="font-weight:700; color: var(--navy);">User</span>
+                </div>
+                <div class="user-avatar">
+                    <img id="user-header-pic" src="" alt="Profile" style="display:none;">
+                    <i id="default-icon" class="fas fa-user-circle" style="font-size: 32px; color: var(--navy);"></i>
+                </div>
+            </div>
+        </nav>
+
+        <div class="stats-grid">
+            <!-- MILESTONE 5: EXPORT DATA -->
+            <section class="card-section animate-slide-up">
+                <div class="card-header">
+                    <h3><i class="fas fa-file-export"></i> Financial Exports</h3>
+                    <p style="font-size: 11px; color:#888;">Download your history as professional reports</p>
+                </div>
+                <div style="margin-top:20px; display: flex; flex-direction: column; gap: 12px;">
+                    <button class="primary-btn" onclick="handleExport('pdf')" style="background: #e76f51; border-radius: 12px;">
+                        <i class="fas fa-file-pdf"></i> Download PDF Statement
+                    </button>
+                    <button class="primary-btn" onclick="handleExport('csv')" style="background: #2a9d8f; border-radius: 12px;">
+                        <i class="fas fa-file-csv"></i> Download CSV Spreadsheet
+                    </button>
+                </div>
+            </section>
+
+            <!-- MILESTONE 5: POST A TIP -->
+            <section class="card-section animate-slide-up">
+                <div class="card-header">
+                    <h3><i class="fas fa-lightbulb"></i> Share Expert Advice</h3>
+                </div>
+                <textarea id="post-text" class="forum-input" rows="3" placeholder="What's your secret to saving more money?"></textarea>
+                <button class="primary-btn" id="post-btn" onclick="submitTip()">
+                    <i class="fas fa-paper-plane"></i> Post to Forum
+                </button>
+            </section>
+        </div>
+
+        <!-- MILESTONE 5: THE FORUM LIST -->
+        <section class="card-section animate-slide-up" style="margin-top:20px;">
+            <div class="card-header">
+                <h3><i class="fas fa-users"></i> Community Financial Forum</h3>
+            </div>
+            <div id="forum-list">
+                <!-- Posts will be injected here -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem("user"));
+        document.getElementById("display-name").innerText = activeUser.fullName;
+
+        // Load Profile Picture
+        if (activeUser.profilePic) {
+            const img = document.getElementById("user-header-pic");
+            img.src = activeUser.profilePic; img.style.display = "block";
+            document.getElementById("default-icon").style.display = "none";
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        // EXPORT LOGIC
+        function handleExport(format) {
+            showToast(`Generating your ${format.toUpperCase()} report...`, "success");
+            setTimeout(() => {
+                window.location.href = `/api/export/${format}/${activeUser.id}`;
+            }, 1000);
+        }
+
+        // FORUM LOGIC
+        async function loadForum() {
+            try {
+                const res = await fetch('/api/forum/posts');
+                const posts = await res.json();
+                const list = document.getElementById('forum-list');
+                
+                if (posts.length === 0) {
+                    list.innerHTML = `<p style="text-align:center; color:#999; margin:40px;">The forum is quiet. Share the first tip!</p>`;
+                    return;
+                }
+
+                list.innerHTML = posts.map(p => `
+                    <div class="post-card">
+                        <div class="post-header">
+                            <span class="post-author"><i class="fas fa-user-circle"></i> ${p.authorName}</span>
+                            <small style="color:#aaa;">${new Date(p.createdAt).toLocaleDateString()}</small>
+                        </div>
+                        <p class="post-content">${p.content}</p>
+                        <div class="like-btn" onclick="likePost(${p.id}, this)">
+                            <i class="fas fa-heart"></i> <span>${p.likes || 0}</span> Likes
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) { console.error("Forum error", e); }
+        }
+
+        async function submitTip() {
+            const text = document.getElementById('post-text').value;
+            const btn = document.getElementById('post-btn');
+            if (!text) { showToast("Your tip cannot be empty!", "error"); return; }
+
+            btn.disabled = true;
+            const postData = { userId: activeUser.id, authorName: activeUser.fullName, content: text };
+
+            const res = await fetch('/api/forum/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(postData)
+            });
+
+            if (res.ok) {
+                showToast("Tip shared with the community!", "success");
+                document.getElementById('post-text').value = "";
+                loadForum();
+            }
+            btn.disabled = false;
+        }
+
+        async function likePost(postId, element) {
+            const res = await fetch(`/api/forum/like/${postId}`, { method: 'POST' });
+            if (res.ok) {
+                const updatedPost = await res.json();
+                element.querySelector('span').innerText = updatedPost.likes;
+                element.classList.add('active');
+            }
+        }
+
+        function logout() {
+            if(confirm("Logout from Community?")) {
+                localStorage.clear();
+                window.location.replace("login.html");
+            }
+        }
+
+        window.onload = loadForum;
+    </script>
+    
+    <!-- AI AGENT GLOBAL INJECTION -->
+    <script src="ai-agent.js"></script>
+</body>
+</html>
