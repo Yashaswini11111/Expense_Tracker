@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // SPEED FIX 1: Instant Auth Guard in Head
+        const userData = localStorage.getItem("user");
+        if (!userData) {
+            window.location.replace("login.html");
+        }
+        const activeUser = JSON.parse(userData);
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Budget Advisor</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .profile-upload-container { text-align: center; margin-bottom: 25px; }
+        #profile-preview {
+            width: 110px; height: 110px; border-radius: 50%;
+            object-fit: cover; border: 3px solid var(--primary);
+            box-shadow: var(--shadow-premium); background: #eee;
+        }
+        .field-group { position: relative; margin-bottom: 15px; text-align: left; }
+        .field-group i { position: absolute; left: 15px; top: 42px; color: #94a3b8; }
+        .field-group input { padding-left: 45px !important; }
+        .field-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 5px; }
+        
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div id="toast-container"></div>
+
+    <div class="dashboard-wrapper animate-slide-up">
+        <!-- TOP NAVIGATION -->
+        <nav class="top-nav">
+            <div class="brand">
+                <a href="dashboard.html" style="text-decoration:none; color:var(--navy); font-weight:600; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-arrow-left" style="color:var(--primary);"></i> 
+                    <span>Back to <b>Dashboard</b></span>
+                </a>
+            </div>
+            <div class="user-profile">
+                <span class="user-name" id="nav-name"></span>
+            </div>
+        </nav>
+
+        <div class="auth-card" style="margin: 20px auto; width: 450px; padding: 40px;">
+            <h2 style="font-size: 22px;">Account Settings</h2>
+            <p class="subtitle">Update your profile information</p>
+
+            <!-- PROFILE PICTURE -->
+            <div class="profile-upload-container">
+                <img id="profile-preview" src="https://via.placeholder.com/110" alt="Profile">
+                <div style="margin-top: 10px;">
+                    <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImage(this)">
+                    <button class="primary-btn" style="width:auto; padding:6px 15px; font-size:11px; background: var(--navy);" onclick="document.getElementById('imageInput').click()">
+                        <i class="fas fa-camera"></i> Change Photo
+                    </button>
+                </div>
+            </div>
+            
+            <div class="field-group">
+                <label>Full Name</label>
+                <i class="fas fa-user"></i>
+                <input type="text" id="p-name">
+            </div>
+            
+            <div class="field-group">
+                <label>Date of Birth</label>
+                <i class="fas fa-calendar-alt"></i>
+                <input type="date" id="p-dob">
+            </div>
+
+            <div class="field-group">
+                <label>Monthly Salary (₹)</label>
+                <i class="fas fa-wallet"></i>
+                <input type="number" id="p-income">
+            </div>
+
+            <div class="field-group">
+                <label>Email ID</label>
+                <i class="fas fa-envelope"></i>
+                <input type="text" id="p-email" disabled style="background:#f8fafc; cursor:not-allowed;">
+            </div>
+
+            <button class="primary-btn" id="save-btn" onclick="saveProfile()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // SPEED FIX 2: Immediate Data Injection (runs before window.onload)
+        document.getElementById('p-name').value = activeUser.fullName || "";
+        document.getElementById('p-email').value = activeUser.email || "";
+        document.getElementById('p-income').value = activeUser.monthlyIncome || 0;
+        document.getElementById('p-dob').value = activeUser.dob || "";
+        document.getElementById('nav-name').innerText = activeUser.fullName;
+        if(activeUser.profilePic) document.getElementById('profile-preview').src = activeUser.profilePic;
+
+        let base64Image = activeUser.profilePic || "";
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('profile-preview').src = e.target.result;
+                    base64Image = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function saveProfile() {
+            const btn = document.getElementById("save-btn");
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Saving...';
+
+            const updatedData = {
+                id: activeUser.id,
+                fullName: document.getElementById('p-name').value,
+                dob: document.getElementById('p-dob').value,
+                monthlyIncome: parseFloat(document.getElementById('p-income').value),
+                profilePic: base64Image
+            };
+
+            try {
+                const res = await fetch('/api/update-profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (res.ok) {
+                    const savedUser = await res.json();
+                    localStorage.setItem("user", JSON.stringify(savedUser));
+                    showToast("Profile Updated!", "success");
+                    // SPEED FIX 3: Fast Redirect
+                    setTimeout(() => { window.location.replace("dashboard.html"); }, 600);
+                } else {
+                    showToast("Update failed", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                }
+            } catch (err) {
+                showToast("Connection Error", "error");
+                btn.disabled = false;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+    </script>
+    <!-- AI AGENT GLOBAL INJECTION -->
+    <script src="ai-agent.js"></script>
+</body>
+</html>

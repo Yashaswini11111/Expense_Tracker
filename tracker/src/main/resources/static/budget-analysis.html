@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // INSTANT AUTH GUARD
+        if (!localStorage.getItem("user")) {
+            window.location.replace("login.html");
+        }
+    </script>
+    <meta charset="UTF-8">
+    <title>Budget Analysis | BudgetWise Advisor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        
+        /* HEADER AVATAR FIX */
+        .user-avatar {
+            width: 42px !important; height: 42px !important;
+            border-radius: 50%; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--primary); flex-shrink: 0; background: #eee;
+        }
+        #user-header-pic { width: 100%; height: 100%; object-fit: cover; }
+
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .no-data-msg { text-align: center; padding-top: 100px; color: #888; font-style: italic; }
+        
+        /* Animation for chart updates */
+        canvas { animation: fadeIn 0.8s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="dashboard-body">
+
+    <div id="toast-container"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- TOP NAVIGATION -->
+        <nav class="top-nav">
+            <div class="brand">
+                <a href="dashboard.html" style="text-decoration:none; color:var(--navy); font-weight:600; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-arrow-left" style="color:var(--primary);"></i> 
+                    <span>Back to <b>Dashboard</b></span>
+                </a>
+            </div>
+            <div class="user-profile" onclick="location.href='profile.html'" style="cursor:pointer; display: flex; align-items: center; gap:12px;">
+                <div class="user-text" style="text-align: right;">
+                    <span class="hey" style="font-size: 11px; color: #888; display: block;">PLANNING FOR</span>
+                    <span id="display-name" class="user-name" style="font-weight:700;">User</span>
+                </div>
+                <div class="user-avatar">
+                    <img id="user-header-pic" src="" alt="Profile" style="display:none;">
+                    <i id="default-icon" class="fas fa-user-circle" style="font-size: 32px; color: var(--navy);"></i>
+                </div>
+            </div>
+        </nav>
+
+        <div class="stats-grid">
+            <!-- MILESTONE 3: SET BUDGET FORM -->
+            <section class="card-section animate-slide-up">
+                <div class="card-header">
+                    <h3><i class="fas fa-bullseye"></i> Set Monthly Budget</h3>
+                    <p style="font-size: 11px; color:#888;">Set limits for the current month</p>
+                </div>
+                <div class="form-container" style="margin-top:20px;">
+                    <div class="field">
+                        <label>Category</label>
+                        <select id="budget-cat">
+                            <option>Food & Dining</option>
+                            <option>Home & Rent</option>
+                            <option>Shopping</option>
+                            <option>Transportation</option>
+                            <option>Miscellaneous</option>
+                        </select>
+                    </div>
+                    <div class="field" style="margin-top:15px;">
+                        <label>Budget Amount (₹)</label>
+                        <input type="number" id="budget-amt" placeholder="e.g. 5000">
+                    </div>
+                    <button class="primary-btn" id="set-limit-btn" onclick="saveBudget()" style="margin-top:20px;">
+                        <i class="fas fa-check-circle"></i> Set Limit
+                    </button>
+                </div>
+            </section>
+
+            <!-- MILESTONE 4: DOUGHNUT CHART -->
+            <section class="card-section animate-slide-up">
+                <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Spending Breakdown</h3></div>
+                <div class="chart-container" id="pie-container">
+                    <canvas id="spendingPieChart"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <!-- MILESTONE 4: BAR CHART (COMPARISON) -->
+        <section class="card-section animate-slide-up" style="margin-top:20px;">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-bar"></i> Budget vs. Actual Comparison</h3>
+                <p style="font-size: 11px; color:#888;">Real-time review of your financial discipline</p>
+            </div>
+            <div class="chart-container" id="bar-container">
+                <canvas id="comparisonBarChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem("user"));
+        document.getElementById("display-name").innerText = activeUser.fullName;
+
+        // Load Profile Pic
+        if (activeUser.profilePic) {
+            const img = document.getElementById("user-header-pic");
+            img.src = activeUser.profilePic; img.style.display = "block";
+            document.getElementById("default-icon").style.display = "none";
+        }
+
+        // CHART INSTANCES (To prevent "Canvas already in use" error)
+        let pieChart = null;
+        let barChart = null;
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        async function saveBudget() {
+            const amount = document.getElementById('budget-amt').value;
+            const category = document.getElementById('budget-cat').value;
+            const btn = document.getElementById('set-limit-btn');
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showToast("Please enter a valid amount", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            const now = new Date();
+            const currentMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            const budgetData = {
+                userId: activeUser.id,
+                category: category,
+                budgetAmount: parseFloat(amount),
+                monthYear: currentMonthYear
+            };
+
+            try {
+                const response = await fetch('/api/budgets/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(budgetData)
+                });
+
+                if (response.ok) {
+                    showToast(`${category} budget updated!`, "success");
+                    document.getElementById('budget-amt').value = "";
+                    // DYNAMIC REFRESH: Reload charts without page reload
+                    loadCharts(); 
+                } else {
+                    showToast("Error saving budget", "error");
+                }
+            } catch (err) {
+                showToast("Server Connection Error", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Set Limit';
+            }
+        }
+
+        async function loadCharts() {
+            try {
+                const res = await fetch(`/api/analysis/budget-vs-spent/${activeUser.id}`);
+                const data = await res.json();
+
+                if (!data || data.length === 0) {
+                    document.getElementById('pie-container').innerHTML = `<p class="no-data-msg">No transactions found for this month.</p>`;
+                    document.getElementById('bar-container').innerHTML = `<p class="no-data-msg">Add transactions to start analysis.</p>`;
+                    return;
+                }
+
+                const labels = data.map(d => d.category);
+                const spentValues = data.map(d => d.actualSpent);
+                const budgetValues = data.map(d => d.budgetAmount || 0);
+
+                // 1. DOUGHNUT CHART RE-RENDER
+                if (pieChart) pieChart.destroy();
+                const ctxPie = document.getElementById('spendingPieChart').getContext('2d');
+                pieChart = new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: spentValues,
+                            backgroundColor: ['#E9C46A', '#2A9D8F', '#E76F51', '#264653', '#F4A261'],
+                            hoverOffset: 15, borderWidth: 0
+                        }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+
+                // 2. BAR CHART RE-RENDER
+                if (barChart) barChart.destroy();
+                const ctxBar = document.getElementById('comparisonBarChart').getContext('2d');
+                barChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Limit', data: budgetValues, backgroundColor: '#264653', borderRadius: 5 },
+                            { label: 'Actual', data: spentValues, backgroundColor: '#E9C46A', borderRadius: 5 }
+                        ]
+                    },
+                    options: { 
+                        maintainAspectRatio: false,
+                        scales: { 
+                            y: { beginAtZero: true, ticks: { callback: v => '₹' + v } } 
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Chart load error:", err);
+            }
+        }
+
+        function logout() {
+            if(confirm("Logout from BudgetWise?")) {
+                localStorage.clear();
+                window.location.replace("login.html");
+            }
+        }
+
+        window.onload = loadCharts;
+    </script>
+    <!-- AI AGENT INJECTION -->
+    <script src="ai-agent.js"></script>
+</body>
+</html>

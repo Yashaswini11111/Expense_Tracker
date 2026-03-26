@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // INSTANT AUTH GUARD: Executed before CSS/HTML to prevent flicker
+        if (localStorage.getItem("user")) {
+            window.location.replace("dashboard.html");
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | BudgetWise Advisor</title>
+    
+    <!-- External Assets -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #E9C46A;
+            --navy: #264653;
+            --soft-bg: #fdfcf8;
+            --input-bg: #f8fafc;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--soft-bg);
+            background-image: radial-gradient(circle at 10% 20%, rgba(233, 196, 106, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(38, 70, 83, 0.05) 0%, transparent 40%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Premium Card Design */
+        .auth-card {
+            background: #ffffff;
+            padding: 60px 45px;
+            border-radius: 32px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.02), 
+                        0 25px 50px -12px rgba(38, 70, 83, 0.08);
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            border: 1px solid rgba(233, 196, 106, 0.1);
+            position: relative;
+        }
+
+        .logo-section {
+            margin-bottom: 35px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--navy);
+            color: var(--primary);
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 12px 20px -8px rgba(38, 70, 83, 0.4);
+            margin-bottom: 15px;
+            transform: rotate(-5deg);
+        }
+
+        h2 {
+            color: var(--navy);
+            font-weight: 700;
+            font-size: 28px;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        /* Input Container Styling */
+        .form-group {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group i.prefix-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 18px;
+            transition: var(--transition);
+            pointer-events: none;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 16px 16px 52px !important;
+            border-radius: 16px !important;
+            border: 2px solid #f1f5f9 !important;
+            background: var(--input-bg) !important;
+            font-size: 15px !important;
+            color: var(--navy) !important;
+            transition: var(--transition) !important;
+            box-sizing: border-box;
+            margin: 0 !important;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary) !important;
+            background: #ffffff !important;
+            outline: none !important;
+            box-shadow: 0 0 0 4px rgba(233, 196, 106, 0.12) !important;
+        }
+
+        .form-group input:focus + i.prefix-icon {
+            color: var(--navy);
+        }
+
+        /* Professional Eye Toggle */
+        .pass-toggle {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 18px;
+            padding: 5px;
+            transition: var(--transition);
+        }
+
+        .pass-toggle:hover {
+            color: var(--navy);
+        }
+
+        /* Neat Tactile Button */
+        .login-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--navy);
+            color: white;
+            border: none;
+            border-radius: 18px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            background: #1a3039;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(38, 70, 83, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .footer-text {
+            margin-top: 35px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .footer-text a {
+            color: var(--navy);
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 2px;
+            margin-left: 5px;
+        }
+
+        /* Designed Toast Overlays */
+        #toast-container {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 10000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div class="auth-card animate-slide-up">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2>Secure Access</h2>
+            <p class="subtitle">BudgetWise AI Financial Advisor</p>
+        </div>
+        
+        <div class="form-group">
+            <input type="email" id="l-email" placeholder="Email Address" autocomplete="email">
+            <i class="fas fa-envelope prefix-icon"></i>
+        </div>
+
+        <div class="form-group">
+            <input type="password" id="l-pass" placeholder="Password">
+            <i class="fas fa-lock prefix-icon"></i>
+            <i class="fas fa-eye pass-toggle" id="eye-icon" onclick="togglePassword()"></i>
+        </div>
+        
+        <button class="login-btn" id="login-btn" onclick="handleLogin()">
+            <span id="btn-text">Sign In to Dashboard</span>
+            <i class="fas fa-arrow-right-long" id="btn-icon"></i>
+        </button>
+        
+        <div class="footer-text">
+            Don't have an account? <a href="signup.html">Create One</a>
+        </div>
+    </div>
+
+    <script>
+        // 1. Smooth Password Toggle
+        function togglePassword() {
+            const passInput = document.getElementById('l-pass');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                eyeIcon.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                passInput.type = "password";
+                eyeIcon.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        }
+
+        // 2. Premium Toast System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+            
+            toast.innerHTML = `
+                <i class="fa-solid ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Animation handling
+            setTimeout(() => { 
+                toast.style.opacity = '0'; 
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 500); 
+            }, 3500);
+        }
+
+        // 3. Login Controller
+        async function handleLogin() {
+            const email = document.getElementById('l-email').value.trim();
+            const pass = document.getElementById('l-pass').value;
+            const btn = document.getElementById('login-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+
+            if (!email || !pass) {
+                showToast("Please enter your credentials", "error");
+                return;
+            }
+
+            // Start Loading State
+            btn.disabled = true;
+            btnText.innerText = "Authenticating...";
+            btnIcon.className = "fas fa-spinner fa-spin";
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: pass })
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    localStorage.setItem("user", JSON.stringify(userData));
+                    
+                    showToast("Login Successful! Welcome back.", "success");
+                    
+                    // Instant speed redirect (150ms delay for visual feedback)
+                    setTimeout(() => { 
+                        window.location.replace("dashboard.html"); 
+                    }, 150);
+                } else {
+                    showToast("Invalid email or password", "error");
+                    resetBtn();
+                }
+            } catch (err) {
+                showToast("Server Connection Failed", "error");
+                resetBtn();
+            }
+        }
+
+        function resetBtn() {
+            const btn = document.getElementById('login-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            btn.disabled = false;
+            btnText.innerText = "Sign In to Dashboard";
+            btnIcon.className = "fas fa-arrow-right-long";
+        }
+
+        // Enter key detection
+        document.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') handleLogin(); 
+        });
+    </script>
+</body>
+</html>
